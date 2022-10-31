@@ -26,21 +26,17 @@ class App extends React.Component {
       await window.ethereum.enable(); // Enable the Ethereum client
       this.provider = new ethers.providers.Web3Provider(window.ethereum); // A connection to the Ethereum network
       this.signer = this.provider.getSigner(); // Holds your private key and can sign things
-      this.setState({ currentAddress: this.signer.getAddress() }); // Set the current address
+      this.setState({ currentAddress: await this.signer.getAddress() }); // Set the current address
       // Add the Step 2 Code here for the auction manager contract object
       this._auctionManager = new ethers.Contract(
         AUCTIONMANAGER_ADDRESS,
-
         AuctionManagerArtifact.abi,
-
         this.signer
       );
       // Add the Step 2 code here for the NFT contract object
       this._nft = new ethers.Contract(
         NFT_ADDRESS,
-
         NFTArtifact.abi,
-
         this.signer
       );
       this.getItems();
@@ -86,7 +82,6 @@ class App extends React.Component {
     console.log("Approve Transaction sent! Hash:", allowance_hash);
     await this.provider.waitForTransaction(allowance_hash); // Wait till the transaction is mined
     console.log("Transaction mined!");
-
     let { hash } = await this._auctionManager.createAuction(
       // Create an auction
       this.state.newAuction.endTime * 60, // Converting minutes to seconds
@@ -104,7 +99,6 @@ class App extends React.Component {
   async getAuctions() {
     let auctionsAddresses = await this._auctionManager.getAuctions(); // get a list of auction addresses
     let auctions = await this._auctionManager.getAuctionInfo(auctionsAddresses); // I'll just pass all the addresses here, you can build a pagination system if you want
-
     let new_auctions = [];
 
     for (let i = 0; i < auctions.endTime.length; i++) {
@@ -228,12 +222,13 @@ class App extends React.Component {
     let isOwner = this.state.currentAddress === activeAuction.owner; // Check if the current address is the owner
     let isAuctionOpen = state === "Open"; // Check if the auction is open
     // let isAuctionCancelled = state === "Cancelled"; // Check if the auction is cancelled
-    const isHighestBidder =
-      activeAuction.bids.length !== 0 &&
-      this.state.currentAddress ===
-        activeAuction.bids.filter(
-          (bid) => bid.bid === activeAuction.highestBid
-        )[0].bidder;
+    let highestBidder = "";
+    activeAuction.bids.forEach((bid) => {
+      if (bid.bid === activeAuction.highestBid) {
+        highestBidder = bid.bidder;
+      }
+    });
+    const isHighestBidder = highestBidder === this.state.currentAddress;
     let isAuctionEnded = state === "Ended" || state === "Direct Buy"; // Check if the auction is ended
     return (
       <div>
@@ -297,7 +292,7 @@ class App extends React.Component {
                 class="btn-primary"
                 onClick={() => this.placeBid(this.state.bidAmount)}
               >
-                Place Pid
+                Place Bid
               </button>
             </div>
           ) : null}
