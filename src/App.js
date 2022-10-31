@@ -3,8 +3,8 @@ import { ethers } from "ethers";
 import AuctionArtifact from "./artifacts/Auction.json";
 import AuctionManagerArtifact from "./artifacts/AuctionManager.json";
 import NFTArtifact from "./artifacts/ButterflyToken.json";
-const NFT_ADDRESS = "0x8f5577ee1078376714bd73c3e2b6fa18a877fce9"; // NFT contract address
-const AUCTIONMANAGER_ADDRESS = "0x2fe89bc41Db8A357dE7757F4D2D9E185ad2c58F1"; // AuctionManager contract address
+const NFT_ADDRESS = "Add_NFT_Address_Here"; // NFT contract address
+const AUCTIONMANAGER_ADDRESS = "Add_auction_Manager_address here"; // AuctionManager contract address
 class App extends React.Component {
   constructor(props) {
     super(props);
@@ -27,18 +27,10 @@ class App extends React.Component {
       this.provider = new ethers.providers.Web3Provider(window.ethereum); // A connection to the Ethereum network
       this.signer = this.provider.getSigner(); // Holds your private key and can sign things
       this.setState({ currentAddress: await this.signer.getAddress() }); // Set the current address
-      // Add the Step 2 Code here for the auction manager contract object
-      this._auctionManager = new ethers.Contract(
-        AUCTIONMANAGER_ADDRESS,
-        AuctionManagerArtifact.abi,
-        this.signer
-      );
-      // Add the Step 2 code here for the NFT contract object
-      this._nft = new ethers.Contract(
-        NFT_ADDRESS,
-        NFTArtifact.abi,
-        this.signer
-      );
+      // Add the Step 3 Code here for the auction manager contract object
+
+      // Add the Step 3 code here for the NFT contract object
+
       this.getItems();
       this.getAuctions();
     } else {
@@ -46,22 +38,7 @@ class App extends React.Component {
     }
   }
   async getItems() {
-    const walletAddress = await this.signer.getAddress();
-    let tokenOwner = null;
-    let counter = 0;
-    const NFTIds = [];
-    do {
-      try {
-        tokenOwner = await this._nft.ownerOf(counter);
-        if (tokenOwner === walletAddress) {
-          NFTIds.push(counter);
-        }
-        counter++;
-      } catch (error) {
-        tokenOwner = null;
-      }
-    } while (tokenOwner != null);
-    this.setState({ myItems: NFTIds });
+    // Paste Step 4 code here
   }
   async createAuction() {
     if (
@@ -74,89 +51,15 @@ class App extends React.Component {
       console.log(this.state.newAuction);
       return alert("Fill all the fields");
     }
-
-    let { hash: allowance_hash } = await this._nft.approve(
-      AUCTIONMANAGER_ADDRESS,
-      this.state.newAuction.tokenId
-    ); // Approve the AUCTIONMANAGER to transfer the token
-    console.log("Approve Transaction sent! Hash:", allowance_hash);
-    await this.provider.waitForTransaction(allowance_hash); // Wait till the transaction is mined
-    console.log("Transaction mined!");
-    let { hash } = await this._auctionManager.createAuction(
-      // Create an auction
-      this.state.newAuction.endTime * 60, // Converting minutes to seconds
-      ethers.utils.parseEther(this.state.newAuction.minIncrement.toString()), // Minimum increment in AVAX
-      ethers.utils.parseEther(this.state.newAuction.directBuyPrice.toString()), // Direct buy price in AVAX
-      ethers.utils.parseEther(this.state.newAuction.startPrice.toString()), // Start price in AVAX
-      NFT_ADDRESS, // The address of the NFT token
-      this.state.newAuction.tokenId // The id of the token
-    );
-    console.log("Transaction sent! Hash:", hash);
-    await this.provider.waitForTransaction(hash); // Wait till the transaction is mined
-    console.log("Transaction mined!");
-    alert(`Transaction sent! Hash: ${hash}`);
+    // Paste step 5 code here
   }
   async getAuctions() {
-    let auctionsAddresses = await this._auctionManager.getAuctions(); // get a list of auction addresses
-    let auctions = await this._auctionManager.getAuctionInfo(auctionsAddresses); // I'll just pass all the addresses here, you can build a pagination system if you want
-    let new_auctions = [];
-
-    for (let i = 0; i < auctions.endTime.length; i++) {
-      let endTime = auctions.endTime[i].toNumber();
-      let tokenId = auctions.tokenIds[i].toNumber();
-      let auctionState = auctions.auctionState[i].toNumber();
-
-      let startPrice = ethers.utils.formatEther(auctions.startPrice[i]);
-      let directBuyPrice = ethers.utils.formatEther(auctions.directBuy[i]);
-      let highestBid = ethers.utils.formatEther(auctions.highestBid[i]);
-
-      let owner = auctions.owner[i];
-
-      let newAuction = {
-        endTime: endTime,
-        startPrice: startPrice,
-        owner: owner,
-        directBuyPrice: directBuyPrice,
-        tokenId: tokenId,
-        highestBid: highestBid,
-        auctionState: auctionState,
-        auctionAddress: auctionsAddresses[i],
-      };
-      new_auctions.push(newAuction);
-    }
-
-    this.setState({ auctions: new_auctions }); // Update the state
+    // Insert Step 6 code here
   }
   async setActiveAuction(auction, _this) {
-    // Add the Step 2 code here for the auction contract object
-    _this._auction = new ethers.Contract(
-      auction.auctionAddress,
-      AuctionArtifact.abi,
-      _this.signer
-    );
-    let previousBids = await _this._auction.allBids(); // Get the bids
-    let bids = []; // A list of bids
-    for (let i = 0; i < previousBids[0].length; i++) {
-      // Loop through the bids
-      bids.push({
-        // Add the bid to the list
-        bidder: previousBids[0][i], // The bidder
-        bid: ethers.utils.formatEther(previousBids[1][i]), // The bid
-      });
-    }
-
-    auction.bids = bids; // Add the bids array to the auction object
-
-    // let auctionTokenValue = await _this._nft.tokenURI(auction.tokenId); // Get the value of the token
-    // auction.auctionTokenValue = auctionTokenValue; // Add the value of the token to the auction object
-
-    let highestBidder = await _this._auction.maxBidder(); // Get the highest bidder
-    auction.highestBidder = highestBidder; // Add the highest bidder to the auction object
-
-    let minIncrement = await _this._auction.minIncrement(); // Get the minimum increment
-    auction.minIncrement = ethers.utils.formatEther(minIncrement); // Add the minimum increment to the auction object
-
-    _this.setState({ activeAuction: auction }); // Update the state
+    // Add the Step 3 code here for the auction contract object
+    //
+    // Add step 7 code here
   }
   renderAuctionElement(auction, _this) {
     let state = "";
@@ -319,30 +222,22 @@ class App extends React.Component {
   async placeBid(amount) {
     if (!amount) return;
     amount = ethers.utils.parseEther(amount.toString()); // Amount in AVAX
-    let { hash } = await this._auction.placeBid({ value: amount }); // Place a bid
-    await this.provider.waitForTransaction(hash); // Wait till the transaction is mined
-    alert(`Transaction sent! Hash: ${hash}`); // Show the transaction hash
-    this.setActiveAuction(this.state.activeAuction, this); // Update the active auction
+    // Add Step 8 code here
+    this.setActiveAuction(this.state.activeAuction, this);
   }
 
   async withdrawToken() {
-    let { hash } = await this._auction.withdrawToken(); // Withdraw the NFT token
-    await this.provider.waitForTransaction(hash); // Wait till the transaction is mined
-    alert(`Withdrawal Successful! Hash: ${hash}`); // Show the transaction hash
+    // Add Step 9 code heeere
     window.location.reload(); // Reload the page
   }
 
   async withdrawFunds() {
-    let { hash } = await this._auction.withdrawFunds(); // Withdraw the funds
-    await this.provider.waitForTransaction(hash); // Wait till the transaction is mined
-    alert(`Withdrawal Successful! Hash: ${hash}`); // Show the transaction hash
+    // Add Step 10 code here
     window.location.reload(); // Reload the page
   }
 
   async cancelAuction() {
-    let { hash } = await this._auction.cancelAuction(); // Cancel the auction
-    await this.provider.waitForTransaction(hash); // Wait till the transaction is mined
-    alert(`Auction Canceled! Hash: ${hash}`); // Show the transaction hash
+    //  Add Step 11 code here
     window.location.reload(); // Reload the page
   }
 
